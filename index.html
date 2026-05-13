@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Start</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400&family=DM+Serif+Display:ital@0;1&display=swap');
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  :root { --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+
+  html, body { width:100%; height:100%; overflow:hidden; background:#0d0d0d; font-family:'DM Sans',sans-serif; }
+
+  #bg-wrap { position:fixed; inset:-80px; z-index:0; will-change:transform; transition:transform 0.18s var(--ease); }
+  #bg, #bg-prev {
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    background-size:cover; background-position:center;
+    background-color:#0d0d0d;
+    transition:opacity 2s ease;
+  }
+  #bg-prev { opacity:1; }
+  #bg      { opacity:0; }
+  #bg-video, #bg-gif, #bg-video-prev, #bg-gif-prev {
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; display:none;
+  }
+  #bg-video, #bg-gif       { opacity:0; transition:opacity 2s ease; z-index:2; }
+  #bg-video-prev, #bg-gif-prev { opacity:1; z-index:1; }
+
+  #bg-blur {
+    position:fixed; inset:0; z-index:1;
+    backdrop-filter:blur(0px); -webkit-backdrop-filter:blur(0px);
+    transition:backdrop-filter 2.5s ease, -webkit-backdrop-filter 2.5s ease, opacity 2.5s ease;
+    opacity:0; pointer-events:none;
+  }
+  #bg-blur.blurring { backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); opacity:1; }
+
+  #overlay { position:fixed; inset:0; z-index:1; background:linear-gradient(to bottom,rgba(0,0,0,0.08) 0%,rgba(0,0,0,0.18) 40%,rgba(0,0,0,0.38) 100%); pointer-events:none; }
+
+  #ui { position:fixed; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+
+  #greeting { font-size:18px; font-weight:300; color:rgba(255,255,255,0.6); letter-spacing:0.06em; user-select:none; min-height:24px; }
+
+  #clock { text-align:center; user-select:none; }
+  #clock-time { font-family:'DM Serif Display',serif; font-size:clamp(72px,12vw,120px); font-weight:400; color:#fff; letter-spacing:-0.02em; line-height:1; text-shadow:0 2px 40px rgba(0,0,0,0.4); }
+  #clock-date { font-size:15px; font-weight:300; color:rgba(255,255,255,0.65); letter-spacing:0.18em; text-transform:uppercase; margin-top:10px; text-shadow:0 1px 12px rgba(0,0,0,0.5); }
+
+  #search-wrap { position:relative; width:min(560px,90vw); }
+  #search-form { position:relative; width:100%; }
+  #search { width:100%; padding:14px 52px 14px 22px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); border-radius:40px; color:#fff; font-family:'DM Sans',sans-serif; font-size:16px; font-weight:300; outline:none; backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); transition:background 0.2s,border-color 0.2s; caret-color:#fff; }
+  #search::placeholder { color:rgba(255,255,255,0.45); }
+  #search:focus { background:rgba(255,255,255,0.18); border-color:rgba(255,255,255,0.4); }
+  #search-btn { position:absolute; right:6px; top:50%; transform:translateY(-50%); width:38px; height:38px; border-radius:50%; background:rgba(255,255,255,0.18); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
+  #search-btn:hover { background:rgba(255,255,255,0.3); }
+  #search-btn svg { width:16px; height:16px; stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+  .corner-btn { position:fixed; bottom:22px; z-index:10; display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.5); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:300; letter-spacing:0.06em; padding:7px 13px; cursor:pointer; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:background 0.2s,color 0.2s,border-color 0.2s; }
+  .corner-btn:hover { background:rgba(255,255,255,0.16); color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.3); }
+  .corner-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+
+  #mute-btn { left:22px; display:none; }
+  #eye-btn { position:fixed; bottom:62px; left:22px; z-index:10; display:flex; align-items:center; justify-content:center; width:36px; height:36px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.5); cursor:pointer; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:background 0.2s,color 0.2s,border-color 0.2s; }
+  #eye-btn:hover { background:rgba(255,255,255,0.16); color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.3); }
+  #eye-btn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  #settings-btn { right:22px; }
+  #file-input { display:none; }
+
+  #sauce-btn { position:fixed; top:22px; right:22px; z-index:10; display:none; align-items:center; gap:7px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.5); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:300; letter-spacing:0.06em; padding:7px 13px; cursor:pointer; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:background 0.2s,color 0.2s,border-color 0.2s; text-decoration:none; }
+  #sauce-btn:hover { background:rgba(255,255,255,0.16); color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.3); }
+  #sauce-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+
+  #gross-btn { position:fixed; top:62px; right:22px; z-index:10; display:flex; align-items:center; gap:7px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.5); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:300; letter-spacing:0.06em; padding:7px 13px; cursor:pointer; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:background 0.2s,color 0.2s,border-color 0.2s; }
+  #gross-btn:hover { background:rgba(255,255,255,0.16); color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.3); }
+  #gross-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+
+  #hot-btn { position:fixed; top:102px; right:22px; z-index:10; display:none; align-items:center; gap:7px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.5); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:300; letter-spacing:0.06em; padding:7px 13px; cursor:pointer; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:background 0.2s,color 0.2s,border-color 0.2s; }
+  #hot-btn:hover { background:rgba(255,255,255,0.16); color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.3); }
+  #hot-btn.faved { color:rgba(255,210,80,0.9); border-color:rgba(255,210,80,0.4); background:rgba(255,210,80,0.08); }
+  #hot-btn.faved svg { fill:rgba(255,210,80,0.9); stroke:rgba(255,210,80,0.9); }
+  #hot-btn svg { width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+
+  #comment-box {
+    position:fixed; top:22px; left:22px; z-index:10;
+    max-width:300px; min-width:160px;
+    display:none; flex-direction:column; gap:4px;
+    background:rgba(255,255,255,0.07);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:10px; padding:11px 15px;
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    opacity:0; transition:opacity 0.5s ease;
+    pointer-events:none;
+  }
+  #comment-box.visible { opacity:1; }
+  #comment-user { font-size:11px; font-weight:400; color:rgba(255,255,255,0.45); letter-spacing:0.06em; }
+  #comment-text { font-size:13px; font-weight:300; color:rgba(255,255,255,0.8); line-height:1.5; word-break:break-word; }
+
+  #settings-panel { display:none; position:fixed; inset:0; z-index:50; align-items:center; justify-content:center; background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); }
+  #settings-panel.open { display:flex; }
+  #settings-box { background:#1a1a2e; border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:32px; width:min(460px,90vw); display:flex; flex-direction:column; gap:20px; max-height:90vh; overflow-y:auto; }
+  #settings-box h2 { font-size:16px; font-weight:400; color:#fff; letter-spacing:0.04em; }
+  .field { display:flex; flex-direction:column; gap:6px; }
+  .field label { font-size:11px; font-weight:400; color:rgba(255,255,255,0.45); letter-spacing:0.1em; text-transform:uppercase; }
+  .field input[type=text], .field input[type=password] { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:8px; color:#fff; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:300; padding:10px 14px; outline:none; transition:border-color 0.2s; }
+  .field input:focus { border-color:rgba(255,255,255,0.35); }
+  .field input::placeholder { color:rgba(255,255,255,0.25); }
+  .field .hint { font-size:11px; color:rgba(255,255,255,0.3); line-height:1.5; }
+  .settings-divider { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:0; }
+  #settings-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:4px; }
+  .check-row { display:flex; align-items:center; gap:10px; cursor:pointer; padding:2px 0; }
+  .check-row input { width:16px; height:16px; cursor:pointer; accent-color:rgba(255,255,255,0.7); flex-shrink:0; }
+  .check-row span { font-size:14px; color:rgba(255,255,255,0.6); }
+  .checks-group { display:flex; flex-direction:column; gap:12px; }
+  #settings-cancel { margin-left:auto; background:transparent; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.45); font-family:'DM Sans',sans-serif; font-size:13px; padding:9px 18px; cursor:pointer; transition:background 0.15s; }
+  #settings-cancel:hover { background:rgba(255,255,255,0.08); }
+  #settings-save { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:8px; color:#fff; font-family:'DM Sans',sans-serif; font-size:13px; padding:9px 18px; cursor:pointer; transition:background 0.15s; }
+  #settings-save:hover { background:rgba(255,255,255,0.2); }
+  #source-toggle { display:flex; gap:8px; }
+  .src-opt { flex:1; padding:9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:rgba(255,255,255,0.4); font-family:'DM Sans',sans-serif; font-size:12px; cursor:pointer; text-align:center; transition:all 0.15s; }
+  .src-opt.active { background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.35); color:#fff; }
+  #e621-fields, #local-fields { display:none; }
+  #e621-fields.visible, #local-fields.visible { display:flex; flex-direction:column; gap:16px; }
+
+  @media (max-width: 768px) {
+    #clock-time { font-size: clamp(48px, 16vw, 80px); }
+    #clock-date { font-size: 12px; }
+    #search { font-size: 14px; padding: 12px 48px 12px 18px; }
+    .corner-btn { font-size: 11px; padding: 6px 10px; }
+    #sauce-btn, #gross-btn, #hot-btn { font-size: 11px; padding: 6px 10px; }
+    #score-badge { font-size: 11px; padding: 5px 9px; right: 8px; top: 8px; }
+    #sauce-btn { top: 8px; right: 8px; }
+    #gross-btn { top: 44px; right: 8px; }
+    #hot-btn   { top: 80px; right: 8px; }
+    #comment-box { max-width: min(260px, 60vw); font-size: 12px; top: 8px; left: 8px; }
+    #mute-btn  { left: 8px; bottom: 8px; }
+    #eye-btn   { left: 8px; bottom: 52px; }
+    #settings-btn { right: 8px; bottom: 8px; }
+    #settings-box { padding: 20px; gap: 16px; }
+  }
+
+  #score-badge { position:fixed; top:22px; right:130px; z-index:10; display:none; align-items:center; gap:5px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.5); font-family:'DM Sans',sans-serif; font-size:12px; font-weight:300; padding:5px 11px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+  #score-badge #score-val { min-width:24px; text-align:center; }
+
+  .pool-row { display:flex; gap:6px; align-items:center; }
+  .pool-input { flex:1; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#fff; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:300; padding:7px 10px; outline:none; transition:border-color 0.2s; }
+  .pool-input:focus { border-color:rgba(255,255,255,0.35); }
+  .pool-input::placeholder { color:rgba(255,255,255,0.2); }
+  .pool-del { background:none; border:none; color:rgba(255,255,255,0.3); cursor:pointer; font-size:16px; padding:0 4px; line-height:1; transition:color 0.15s; }
+  .pool-del:hover { color:rgba(255,255,255,0.7); }
+</style>
+</head>
+<body>
+
+<div id="bg-wrap">
+  <div id="bg-prev"></div>
+  <div id="bg"></div>
+  <video id="bg-video-prev" muted loop playsinline></video>
+  <img id="bg-gif-prev" alt=""/>
+  <video id="bg-video" autoplay muted loop playsinline preload="auto"></video>
+  <img id="bg-gif" alt=""/>
+</div>
+<div id="bg-blur"></div>
+<div id="overlay"></div>
+
+<div id="ui">
+  <div id="greeting"></div>
+  <div id="clock">
+    <div id="clock-time">00:00</div>
+    <div id="clock-date">Monday, January 1</div>
+  </div>
+  <div id="search-wrap">
+    <form id="search-form" action="https://duckduckgo.com/" method="get">
+      <input id="search" name="q" type="text" placeholder="Search the web..." autocomplete="off" spellcheck="false"/>
+      <button id="search-btn" type="submit" aria-label="Search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="22" y2="22"/></svg>
+      </button>
+    </form>
+  </div>
+</div>
+
+<div id="comment-box">
+  <div id="comment-user"></div>
+  <div id="comment-text"></div>
+</div>
+
+<a id="sauce-btn" href="#" target="_blank">
+  <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+  Sauce
+</a>
+
+<button id="gross-btn">
+  <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/></svg>
+  Gross
+</button>
+
+<button id="hot-btn">
+  <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+  Hot
+</button>
+
+
+<div id="score-badge">
+  <span id="artist-val" style="opacity:0.7;"></span>
+  <span id="artist-divider" style="opacity:0.25;font-size:10px;">|</span>
+  <span id="score-val">0</span>
+</div>
+
+<button id="eye-btn" title="Toggle UI">
+  <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+</button>
+
+<button id="mute-btn" class="corner-btn" aria-label="Toggle mute">
+  <svg id="mute-icon" viewBox="0 0 24 24">
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+    <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+  </svg>
+  <span id="mute-label">Unmute</span>
+</button>
+
+<button id="settings-btn" class="corner-btn">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+  Wallpaper settings
+</button>
+<input id="file-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4"/>
+
+<div id="settings-panel">
+  <div id="settings-box">
+    <h2>Settings</h2>
+
+    <div class="field">
+      <label>Your name</label>
+      <input id="cfg-name" type="text" placeholder="Leave blank to hide greeting" autocomplete="off"/>
+    </div>
+
+    <hr class="settings-divider"/>
+    <h2>Wallpaper source</h2>
+
+    <div id="source-toggle">
+      <button class="src-opt active" data-src="e621">e621</button>
+      <button class="src-opt" data-src="local">Local file</button>
+    </div>
+
+    <div id="e621-fields" class="visible">
+      <div class="field">
+        <label>e621 username</label>
+        <input id="cfg-user" type="text" placeholder="your_username" autocomplete="off"/>
+      </div>
+      <div class="field">
+        <label>API key</label>
+        <input id="cfg-key" type="password" placeholder="••••••••••••••••••••••••" autocomplete="off"/>
+        <span class="hint">Generate at e621.net → Account → Manage API Access</span>
+      </div>
+      <div class="field">
+        <label>Tags</label>
+        <input id="cfg-tags" type="text" placeholder="score:>50 rating:s" autocomplete="off"/>
+        <span class="hint">Space-separated. rating:s / rating:q / rating:e to filter.</span>
+      </div>
+    </div>
+
+    <div id="local-fields">
+      <div class="field">
+        <label>Browse from disk</label>
+        <button id="local-browse-btn" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(255,255,255,0.6);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 14px;cursor:pointer;text-align:left;transition:background 0.15s;">Browse files...</button>
+        <input id="local-browse-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4" style="display:none;"/>
+      </div>
+    </div>
+
+    <hr class="settings-divider"/>
+    <h2>Playback</h2>
+    <div class="checks-group">
+      <label class="check-row">
+        <input id="cfg-start-muted" type="checkbox"/>
+        <span>Start muted</span>
+      </label>
+      <label class="check-row">
+        <input id="cfg-auto-skip" type="checkbox"/>
+        <span>Auto-skip to next post</span>
+      </label>
+    </div>
+    <div class="field">
+      <label>Default volume</label>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <input type="range" id="volume-slider" min="0" max="100" step="1" value="100" style="flex:1;accent-color:rgba(255,255,255,0.6);cursor:pointer;"/>
+        <span id="volume-val" style="font-size:13px;color:rgba(255,255,255,0.45);min-width:36px;text-align:right;">100%</span>
+      </div>
+    </div>
+
+    <hr class="settings-divider"/>
+    <h2>Comments</h2>
+    <div class="checks-group">
+      <label class="check-row">
+        <input id="cfg-comments" type="checkbox"/>
+        <span>Show comment overlay</span>
+      </label>
+    </div>
+
+    <hr class="settings-divider"/>
+    <h2>Tag pools</h2>
+    <div class="hint">Each new post picks a random pool. Leave empty to use the Tags field above.</div>
+    <div id="pools-list"></div>
+    <button id="pool-add-btn" style="background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.35);font-family:'DM Sans',sans-serif;font-size:12px;padding:10px;cursor:pointer;transition:all 0.15s;text-align:center;width:100%;">+ Add pool</button>
+
+    <div id="settings-actions">
+      <button id="settings-cancel">Cancel</button>
+      <button id="settings-save">Save &amp; apply</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BASE_LOCAL = 'file:///C:/Users/N3WKI/AppData/Local/Vivaldi/User%20Data/Default/Wallpapers/wallpaper';
+  const LOCAL_EXTS = ['mp4','gif','jpg','jpeg','png','webp'];
+  const K = { source:'viv_src', user:'viv_e6_user', key:'viv_e6_key', tags:'viv_e6_tags', wpData:'viv_wp_data', wpType:'viv_wp_type', startMuted:'viv_start_muted', name:'viv_name', volume:'viv_volume', pools:'viv_pools', commentsVisible:'viv_comments_vis', autoSkip:'viv_auto_skip' };
+
+  const bgCur     = document.getElementById('bg');
+  const bgPrev    = document.getElementById('bg-prev');
+  const bgVideo   = document.getElementById('bg-video');
+  const bgVideoPrev = document.getElementById('bg-video-prev');
+  const bgGif     = document.getElementById('bg-gif');
+  const bgGifPrev = document.getElementById('bg-gif-prev');
+  const bgWrap    = document.getElementById('bg-wrap');
+  const muteBtn   = document.getElementById('mute-btn');
+  const muteIcon  = document.getElementById('mute-icon');
+  const muteLabel = document.getElementById('mute-label');
+  const sauceBtn  = document.getElementById('sauce-btn');
+  const hotBtn    = document.getElementById('hot-btn');
+  let currentPostId = null;
+  const settingsBtn = document.getElementById('settings-btn');
+  const panel     = document.getElementById('settings-panel');
+  const searchInput = document.getElementById('search');
+  const bgBlur    = document.getElementById('bg-blur');
+  const commentBox  = document.getElementById('comment-box');
+  const commentUser = document.getElementById('comment-user');
+  const commentText = document.getElementById('comment-text');
+
+  const SVG_MUTED = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>`;
+  const SVG_SOUND = `<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>`;
+
+  function updateMuteUI() {
+    muteIcon.innerHTML = bgVideo.muted ? SVG_MUTED : SVG_SOUND;
+    muteLabel.textContent = bgVideo.muted ? 'Unmute' : 'Mute';
+  }
+  muteBtn.addEventListener('click', () => { bgVideo.muted = !bgVideo.muted; updateMuteUI(); });
+
+  function crossfade(showFn) {
+    setTimeout(showFn, 50);
+  }
+
+  function showVideo(url) {
+    clearImageTimer();
+    bgVideoPrev.src = bgVideo.src || '';
+    if (bgVideoPrev.src) { bgVideoPrev.style.display = 'block'; bgVideoPrev.play().catch(()=>{}); }
+    bgGifPrev.style.display = 'none';
+    bgPrev.style.opacity = '1'; bgCur.style.opacity = '0';
+
+    bgVideo.muted = localStorage.getItem(K.startMuted) !== 'false';
+    bgVideo.loop = true;
+    const savedVol = localStorage.getItem(K.volume);
+    bgVideo.volume = savedVol !== null ? +savedVol / 100 : 1;
+    videoSkipArmed = false;
+
+    let played = false;
+    const tryPlay = () => {
+      if (played) return; played = true;
+      bgVideo.style.display = 'block'; bgVideo.style.opacity = '0';
+      bgVideo.play().catch(() => { bgVideo.muted = true; bgVideo.play().catch(()=>{}); });
+      bgCur.style.backgroundImage = 'none'; bgGif.style.display = 'none';
+      requestAnimationFrame(() => {
+        bgVideo.style.opacity = '1';
+        bgVideoPrev.style.opacity = '0';
+        bgGifPrev.style.opacity = '0';
+        bgPrev.style.opacity = '0';
+        setTimeout(() => {
+          bgVideoPrev.style.display = 'none'; bgVideoPrev.style.opacity = '1';
+          bgGifPrev.style.display = 'none'; bgGifPrev.style.opacity = '1';
+        }, 2200);
+      });
+      muteBtn.style.display = 'flex'; updateMuteUI();
+    };
+
+    bgVideo.oncanplay = tryPlay;
+    bgVideo.onloadeddata = tryPlay;
+    bgVideo.src = url;
+    bgVideo.load();
+
+    if (bgVideo.readyState >= 3) tryPlay();
+    setTimeout(() => tryPlay(), 2000);
+  }
+
+  function showGif(url) {
+    clearImageTimer();
+    clearTimeout(bgGif._loopTimer);
+    bgGifPrev.src = bgGif.src || '';
+    if (bgGifPrev.src) { bgGifPrev.style.display = 'block'; bgGifPrev.style.opacity = '1'; }
+    bgVideoPrev.style.display = 'none';
+    bgPrev.style.opacity = '1'; bgCur.style.opacity = '0';
+
+    bgGif.src = url; bgGif.style.display = 'block'; bgGif.style.opacity = '0';
+    bgGif.onload = () => {
+      requestAnimationFrame(() => {
+        bgGif.style.opacity = '1';
+        bgGifPrev.style.opacity = '0';
+        bgPrev.style.opacity = '0';
+        setTimeout(() => { bgGifPrev.style.display = 'none'; bgGifPrev.style.opacity = '1'; }, 2200);
+      });
+      bgGif._loopTimer = setTimeout(() => { if (autoSkipEnabled()) fetchE621(); }, 10000);
+    };
+    bgCur.style.backgroundImage = 'none'; bgVideo.style.opacity = '0'; bgVideo.style.display = 'none';
+    muteBtn.style.display = 'none';
+  }
+
+  function showImage(url) {
+    bgPrev.style.backgroundImage = bgCur.style.backgroundImage || 'none';
+    bgPrev.style.opacity = '1';
+    bgCur.style.opacity = '0';
+    bgVideo.style.display = 'none'; bgGif.style.display = 'none';
+    bgVideoPrev.style.display = 'none'; bgGifPrev.style.display = 'none';
+    muteBtn.style.display = 'none';
+
+    const img = new Image();
+    img.onload = () => {
+      bgCur.style.backgroundImage = `url('${url}')`;
+      requestAnimationFrame(() => {
+        bgCur.style.opacity = '1';
+        bgPrev.style.opacity = '0';
+      });
+      startImageTimer();
+    };
+    img.src = url;
+  }
+
+  function applyMedia(url, type) {
+    if (type === 'video/mp4') return showVideo(url);
+    if (type === 'image/gif') return showGif(url);
+    return showImage(url);
+  }
+
+  let commentCycle = null;
+  let imageTimer = null;
+
+  function autoSkipEnabled() { return localStorage.getItem(K.autoSkip) !== 'false'; }
+
+  function clearImageTimer() { clearTimeout(imageTimer); imageTimer = null; }
+
+  function startImageTimer() {
+    clearImageTimer();
+    if (!autoSkipEnabled()) return;
+    const delay = 5000 + Math.random() * 5000;
+    imageTimer = setTimeout(() => {
+      bgBlur.classList.add('blurring');
+      setTimeout(() => {
+        fetchE621();
+        setTimeout(() => bgBlur.classList.remove('blurring'), 2500);
+      }, 2500);
+    }, delay);
+  }
+
+  let videoSkipArmed = false;
+  bgVideo.addEventListener('timeupdate', () => {
+    if (!autoSkipEnabled() || !bgVideo.duration) return;
+    if (bgVideo.currentTime >= bgVideo.duration - 0.5 && !videoSkipArmed) {
+      videoSkipArmed = true;
+      fetchE621();
+    }
+  });
+  bgVideo.addEventListener('play', () => { videoSkipArmed = false; });
+
+  function cleanComment(body) {
+    return body
+      .replace(/\[quote\][\s\S]*?\[\/quote\]/gi, '')
+      .replace(/@\w+/g, '')
+      .replace(/in response to.*/gi, '')
+      .trim();
+  }
+
+  function startComments(comments) {
+    clearInterval(commentCycle);
+    commentBox.style.display = 'none';
+    commentBox.classList.remove('visible');
+    if (!commentsVisible) return;
+    const filtered = comments
+      .map(c => ({ ...c, body: cleanComment(c.body || '') }))
+      .filter(c => c.body.length > 0 && c.body.length < 280);
+    if (!filtered.length) return;
+    let idx = 0;
+    function show() {
+      const c = filtered[idx % filtered.length];
+      commentBox.classList.remove('visible');
+      setTimeout(() => {
+        commentUser.textContent = c.creator_name || 'anonymous';
+        commentText.textContent = c.body.trim();
+        commentBox.style.display = 'flex';
+        requestAnimationFrame(() => commentBox.classList.add('visible'));
+        idx++;
+      }, 500);
+    }
+    show();
+    commentCycle = setInterval(show, 4000);
+  }
+
+  async function fetchE621() {
+    const user = localStorage.getItem(K.user);
+    const key  = localStorage.getItem(K.key);
+    const pool = getActivePool();
+    const tags = pool || localStorage.getItem(K.tags) || 'score:>50';
+    if (!user || !key) { fallbackLocal(); return; }
+    const auth = 'Basic ' + btoa(user + ':' + key);
+
+    if (/^\d+$/.test(tags.trim())) {
+      try {
+        const res = await fetch(`https://e621.net/posts/${tags.trim()}.json`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
+        if (!res.ok) throw new Error('post not found');
+        const data = await res.json();
+        const post = data.post;
+        if (!post || !post.file || !post.file.url) throw new Error('no file');
+        applyPost(post, user, key);
+        return;
+      } catch(e) { console.warn('post ID fetch failed:', e); fallbackLocal(); return; }
+    }
+
+    const params = new URLSearchParams({ limit:1, tags: tags + ' order:random -flash' });
+    try {
+      const res = await fetch(`https://e621.net/posts.json?${params}`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
+      if (!res.ok) throw new Error('API error ' + res.status);
+      const data = await res.json();
+      const posts = (data.posts || []).filter(p => p.file && p.file.url);
+      if (!posts.length) { fallbackLocal(); return; }
+      applyPost(posts[0], user, key);
+    } catch(e) { console.warn('e621 fetch failed:', e); fallbackLocal(); }
+  }
+
+  function applyPost(post, user, key) {
+    const ext  = post.file.ext.toLowerCase();
+    const type = ext === 'mp4' || ext === 'webm' ? 'video/mp4' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+    applyMedia(post.file.url, type);
+    sauceBtn.href = 'https://e621.net/posts/' + post.id;
+    sauceBtn.style.display = 'flex';
+    currentPostId = post.id;
+    hotBtn.style.display = 'flex';
+    hotBtn.classList.remove('faved');
+    const artists = (post.tags && post.tags.artist) ? post.tags.artist.filter(a => a !== 'conditional_dnp' && a !== 'sound_warning') : [];
+    const artistName = artists.map(a => a.replace(/_/g, ' ')).join(', ');
+    document.getElementById('artist-val').textContent = artistName;
+    document.getElementById('artist-divider').style.display = artistName ? '' : 'none';
+    document.getElementById('score-val').textContent = (post.score && post.score.total !== undefined) ? post.score.total : '?';
+    document.getElementById('score-badge').style.display = 'flex';
+    fetchCommentsForPost(post.id, user, key);
+  }
+
+  async function fetchCommentsForPost(postId, user, key) {
+    try {
+      const auth = 'Basic ' + btoa(user + ':' + key);
+      const params = new URLSearchParams({ 'search[post_id]':postId, limit:20, 'search[order]':'score' });
+      const res = await fetch(`https://e621.net/comments.json?${params}`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
+      if (!res.ok) throw new Error('comments API error ' + res.status);
+      const json = await res.json();
+      const comments = Array.isArray(json) ? json : (json.comments || []);
+      startComments(comments);
+    } catch(e) {
+      console.warn('comments fetch failed:', e.message);
+      clearInterval(commentCycle);
+      commentBox.style.display = 'none';
+    }
+  }
+
+  function fallbackLocal() {
+    clearImageTimer();
+    clearTimeout(bgGif._loopTimer);
+    clearInterval(commentCycle);
+    commentBox.style.display = 'none';
+    sauceBtn.style.display = 'none';
+    hotBtn.style.display = 'none';
+    currentPostId = null;
+    document.getElementById('score-badge').style.display = 'none';
+    const d = localStorage.getItem(K.wpData), t = localStorage.getItem(K.wpType);
+    if (d && t) { applyMedia(d, t); return; }
+    tryLocalFile(0);
+  }
+
+  function tryLocalFile(i) {
+    if (i >= LOCAL_EXTS.length) return;
+    const ext = LOCAL_EXTS[i], url = BASE_LOCAL + '.' + ext;
+    if (ext === 'mp4') {
+      const v = bgVideo; v.src = url; v.load();
+      v.oncanplay = () => showVideo(url);
+      v.onerror = () => tryLocalFile(i + 1);
+    } else {
+      const p = new Image();
+      p.onload  = () => ext === 'gif' ? showGif(url) : showImage(url);
+      p.onerror = () => tryLocalFile(i + 1);
+      p.src = url;
+    }
+  }
+
+  function init() {
+    const source = localStorage.getItem(K.source) || 'local';
+    if (source === 'e621' && localStorage.getItem(K.user) && localStorage.getItem(K.key)) fetchE621();
+    else fallbackLocal();
+  }
+  init();
+
+  document.getElementById('gross-btn').addEventListener('click', () => fetchE621());
+
+  hotBtn.addEventListener('click', async () => {
+    if (!currentPostId) return;
+    const user = localStorage.getItem(K.user);
+    const key  = localStorage.getItem(K.key);
+    if (!user || !key) return;
+    if (hotBtn.classList.contains('faved')) return;
+    const auth = 'Basic ' + btoa(user + ':' + key);
+    try {
+      const res = await fetch('https://e621.net/favorites.json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'VivaldiStartpage/1.0',
+          'Authorization': auth
+        },
+        body: new URLSearchParams({ post_id: currentPostId })
+      });
+      if (res.ok || res.status === 422) hotBtn.classList.add('faved');
+    } catch(e) { console.warn('favorite failed:', e); }
+  });
+
+  document.getElementById('local-browse-btn').addEventListener('click', () => document.getElementById('local-browse-input').click());
+  document.getElementById('local-browse-input').addEventListener('change', function() {
+    const file = this.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      applyMedia(e.target.result, file.type);
+      sauceBtn.style.display = 'none';
+      clearInterval(commentCycle); commentBox.style.display = 'none';
+      try { localStorage.setItem(K.wpData, e.target.result); localStorage.setItem(K.wpType, file.type); localStorage.setItem(K.source, 'local'); } catch(err) {}
+      panel.classList.remove('open');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  settingsBtn.addEventListener('click', () => {
+    document.getElementById('cfg-name').value = localStorage.getItem(K.name) || '';
+    document.getElementById('cfg-user').value = localStorage.getItem(K.user) || '';
+    document.getElementById('cfg-key').value  = localStorage.getItem(K.key)  || '';
+    document.getElementById('cfg-tags').value = localStorage.getItem(K.tags) || '';
+    document.getElementById('cfg-start-muted').checked = localStorage.getItem(K.startMuted) !== 'false';
+    document.getElementById('cfg-auto-skip').checked = localStorage.getItem(K.autoSkip) !== 'false';
+    document.getElementById('cfg-comments').checked = localStorage.getItem(K.commentsVisible) !== 'false';
+    const sv = localStorage.getItem(K.volume) || '100';
+    volSlider.value = sv; volVal.textContent = sv + '%';
+    renderPools();
+    setActiveSource(localStorage.getItem(K.source) || 'local');
+    panel.classList.add('open');
+  });
+  document.getElementById('settings-cancel').addEventListener('click', () => panel.classList.remove('open'));
+  panel.addEventListener('click', e => { if (e.target === panel) panel.classList.remove('open'); });
+  document.querySelectorAll('.src-opt').forEach(btn => btn.addEventListener('click', () => setActiveSource(btn.dataset.src)));
+
+  function setActiveSource(src) {
+    document.querySelectorAll('.src-opt').forEach(b => b.classList.toggle('active', b.dataset.src === src));
+    document.getElementById('e621-fields').classList.toggle('visible', src === 'e621');
+    document.getElementById('local-fields').classList.toggle('visible', src === 'local');
+  }
+
+  document.getElementById('settings-save').addEventListener('click', () => {
+    const name = document.getElementById('cfg-name').value.trim();
+    if (name) localStorage.setItem(K.name, name); else localStorage.removeItem(K.name);
+    localStorage.setItem(K.startMuted, document.getElementById('cfg-start-muted').checked ? 'true' : 'false');
+    localStorage.setItem(K.autoSkip, document.getElementById('cfg-auto-skip').checked ? 'true' : 'false');
+    commentsVisible = document.getElementById('cfg-comments').checked;
+    localStorage.setItem(K.commentsVisible, commentsVisible ? 'true' : 'false');
+    applyCommentVisibility();
+    const inputs = poolsList.querySelectorAll('.pool-input');
+    savePools([...inputs].map(i => i.value.trim()).filter(Boolean));
+    updateGreeting();
+    const src = document.querySelector('.src-opt.active').dataset.src;
+    localStorage.setItem(K.source, src);
+    if (src === 'e621') {
+      const user = document.getElementById('cfg-user').value.trim();
+      const key  = document.getElementById('cfg-key').value.trim();
+      const tags = document.getElementById('cfg-tags').value.trim();
+      if (user) localStorage.setItem(K.user, user);
+      if (key)  localStorage.setItem(K.key, key);
+      if (tags) localStorage.setItem(K.tags, tags);
+    } else {
+      sauceBtn.style.display = 'none';
+      clearInterval(commentCycle); commentBox.style.display = 'none';
+    }
+    panel.classList.remove('open');
+  });
+
+  function updateGreeting() {
+    const name = localStorage.getItem(K.name) || '';
+    const h = new Date().getHours();
+    const tod = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+    const el = document.getElementById('greeting');
+    el.textContent = name ? tod + ', ' + name : '';
+  }
+  updateGreeting();
+
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+  let tx=0, ty=0, cx=0, cy=0;
+
+  if (isMobile) {
+    const startGyro = () => {
+      window.addEventListener('deviceorientation', e => {
+        if (e.gamma == null || e.beta == null) return;
+        tx = Math.max(-1, Math.min(1, e.gamma / 30)) * 22;
+        ty = Math.max(-1, Math.min(1, (e.beta - 30) / 30)) * 22;
+      });
+    };
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      document.addEventListener('touchstart', () => {
+        DeviceOrientationEvent.requestPermission().then(state => { if (state === 'granted') startGyro(); }).catch(()=>{});
+      }, { once: true });
+    } else {
+      startGyro();
+    }
+    document.addEventListener('touchstart', () => {
+      if (bgVideo.paused) bgVideo.play().catch(()=>{});
+    }, { once: true });
+  } else {
+    document.addEventListener('mousemove', e => {
+      tx = (e.clientX / window.innerWidth  - 0.5) * 22;
+      ty = (e.clientY / window.innerHeight - 0.5) * 22;
+    });
+  }
+
+  (function raf() {
+    cx += (tx-cx)*0.07; cy += (ty-cy)*0.07;
+    bgWrap.style.transform = `translate(${cx}px,${cy}px)`;
+    requestAnimationFrame(raf);
+  })();
+
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock-time').textContent = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('clock-date').textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  document.getElementById('search-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const q = searchInput.value.trim();
+    if (!q) return;
+
+    if (/^\d+$/.test(q)) {
+      const user = localStorage.getItem(K.user);
+      const key  = localStorage.getItem(K.key);
+      if (user && key) {
+        searchInput.value = '';
+        const auth = 'Basic ' + btoa(user + ':' + key);
+        try {
+          const res = await fetch(`https://e621.net/posts/${q}.json`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.post && data.post.file && data.post.file.url) {
+              applyPost(data.post, user, key);
+              return;
+            }
+          }
+        } catch(err) { console.warn('post ID fetch failed:', err); }
+      }
+    }
+
+    window.location.href = q.startsWith('http') ? q : 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
+  });
+
+
+  // Volume slider
+  const volSlider = document.getElementById('volume-slider');
+  const volVal    = document.getElementById('volume-val');
+  const savedVol  = localStorage.getItem(K.volume);
+  if (savedVol !== null) { bgVideo.volume = +savedVol / 100; volSlider.value = savedVol; volVal.textContent = savedVol + '%'; }
+  volSlider.addEventListener('input', () => {
+    bgVideo.volume = +volSlider.value / 100;
+    volVal.textContent = volSlider.value + '%';
+    localStorage.setItem(K.volume, volSlider.value);
+  });
+
+  // Comments visibility
+  let commentsVisible = localStorage.getItem(K.commentsVisible) !== 'false';
+  function applyCommentVisibility() {
+    if (!commentsVisible) {
+      commentBox.style.display = 'none';
+      commentBox.classList.remove('visible');
+      clearInterval(commentCycle);
+    }
+  }
+
+  // Tag pools
+  const poolsList = document.getElementById('pools-list');
+  function loadPools() { try { return JSON.parse(localStorage.getItem(K.pools) || '[]'); } catch(e) { return []; } }
+  function savePools(pools) { localStorage.setItem(K.pools, JSON.stringify(pools)); }
+
+  function renderPools() {
+    const pools = loadPools();
+    poolsList.innerHTML = '';
+    if (!pools.length) {
+      const hint = document.createElement('div');
+      hint.style.cssText = 'font-size:11px;color:rgba(255,255,255,0.25);padding:4px 0;';
+      hint.textContent = 'No pools yet. Add one below.';
+      poolsList.appendChild(hint);
+      return;
+    }
+    pools.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.className = 'pool-row';
+      row.innerHTML = `<input class="pool-input" value="${p.replace(/"/g,'&quot;')}" placeholder="score:>30 rating:e"/>
+        <button class="pool-del" data-i="${i}">×</button>`;
+      poolsList.appendChild(row);
+    });
+    poolsList.querySelectorAll('.pool-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = loadPools(); p.splice(+btn.dataset.i, 1); savePools(p); renderPools();
+      });
+    });
+  }
+
+  document.getElementById('pool-add-btn').addEventListener('click', () => {
+    const p = loadPools(); p.push(''); savePools(p); renderPools();
+    poolsList.querySelectorAll('.pool-input').at(-1)?.focus();
+  });
+
+  function getActivePool() {
+    const pools = loadPools();
+    if (!pools.length) return null;
+    return pools[Math.floor(Math.random() * pools.length)];
+  }
+
+  applyCommentVisibility();
+
+
+
+
+  applyCommentVisibility();
+
+  let uiHidden = false;
+  const ui = document.getElementById('ui');
+  const eyeBtn = document.getElementById('eye-btn');
+  const SVG_EYE_ON  = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+  const SVG_EYE_OFF = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`;
+  eyeBtn.querySelector('svg').innerHTML = SVG_EYE_ON;
+
+  eyeBtn.addEventListener('click', () => {
+    uiHidden = !uiHidden;
+    ui.style.opacity = uiHidden ? '0' : '1';
+    ui.style.pointerEvents = uiHidden ? 'none' : '';
+    eyeBtn.querySelector('svg').innerHTML = uiHidden ? SVG_EYE_OFF : SVG_EYE_ON;
+  });
+
+  window.addEventListener('load', () => { if (!isMobile) searchInput.focus(); });
+</script>
+</body>
+</html>
