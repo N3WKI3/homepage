@@ -107,15 +107,10 @@
   .field input::placeholder { color:rgba(255,255,255,0.25); }
   .field .hint { font-size:11px; color:rgba(255,255,255,0.3); line-height:1.5; }
   .settings-divider { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:0; }
-  #settings-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:4px; }
   .check-row { display:flex; align-items:center; gap:10px; cursor:pointer; padding:2px 0; }
   .check-row input { width:16px; height:16px; cursor:pointer; accent-color:rgba(255,255,255,0.7); flex-shrink:0; }
   .check-row span { font-size:14px; color:rgba(255,255,255,0.6); }
   .checks-group { display:flex; flex-direction:column; gap:12px; }
-  #settings-cancel { margin-left:auto; background:transparent; border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.45); font-family:'DM Sans',sans-serif; font-size:13px; padding:9px 18px; cursor:pointer; transition:background 0.15s; }
-  #settings-cancel:hover { background:rgba(255,255,255,0.08); }
-  #settings-save { background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.25); border-radius:8px; color:#fff; font-family:'DM Sans',sans-serif; font-size:13px; padding:9px 18px; cursor:pointer; transition:background 0.15s; }
-  #settings-save:hover { background:rgba(255,255,255,0.2); }
   #source-toggle { display:flex; gap:8px; }
   .src-opt { flex:1; padding:9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:rgba(255,255,255,0.4); font-family:'DM Sans',sans-serif; font-size:12px; cursor:pointer; text-align:center; transition:all 0.15s; }
   .src-opt.active { background:rgba(255,255,255,0.15); border-color:rgba(255,255,255,0.35); color:#fff; }
@@ -300,11 +295,6 @@
     <div class="hint">Each new post picks a random pool. Leave empty to use the Tags field above.</div>
     <div id="pools-list"></div>
     <button id="pool-add-btn" style="background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.15);border-radius:6px;color:rgba(255,255,255,0.35);font-family:'DM Sans',sans-serif;font-size:12px;padding:10px;cursor:pointer;transition:all 0.15s;text-align:center;width:100%;">+ Add pool</button>
-
-    <div id="settings-actions">
-      <button id="settings-cancel">Cancel</button>
-      <button id="settings-save">Save &amp; apply</button>
-    </div>
   </div>
 </div>
 
@@ -651,8 +641,6 @@
     setActiveSource(localStorage.getItem(K.source) || 'local');
     panel.classList.add('open');
   });
-  document.getElementById('settings-cancel').addEventListener('click', () => panel.classList.remove('open'));
-  panel.addEventListener('click', e => { if (e.target === panel) panel.classList.remove('open'); });
   document.querySelectorAll('.src-opt').forEach(btn => btn.addEventListener('click', () => setActiveSource(btn.dataset.src)));
 
   function setActiveSource(src) {
@@ -661,7 +649,7 @@
     document.getElementById('local-fields').classList.toggle('visible', src === 'local');
   }
 
-  document.getElementById('settings-save').addEventListener('click', () => {
+  function saveSettings() {
     const name = document.getElementById('cfg-name').value.trim();
     if (name) localStorage.setItem(K.name, name); else localStorage.removeItem(K.name);
     localStorage.setItem(K.startMuted, document.getElementById('cfg-start-muted').checked ? 'true' : 'false');
@@ -686,7 +674,9 @@
       clearInterval(commentCycle); commentBox.style.display = 'none';
     }
     panel.classList.remove('open');
-  });
+  }
+
+  panel.addEventListener('click', e => { if (e.target === panel) saveSettings(); });
 
   function updateGreeting() {
     const name = localStorage.getItem(K.name) || '';
@@ -821,8 +811,17 @@
   }
 
   document.getElementById('pool-add-btn').addEventListener('click', () => {
-    const p = loadPools(); p.push(''); savePools(p); renderPools();
-    poolsList.querySelectorAll('.pool-input').at(-1)?.focus();
+    const p = loadPools(); p.push(''); savePools(p);
+    const idx = p.length - 1;
+    const row = document.createElement('div');
+    row.className = 'pool-row';
+    row.innerHTML = `<input class="pool-input" value="" placeholder="score:>30 rating:e"/>
+      <button class="pool-del" data-i="${idx}">×</button>`;
+    row.querySelector('.pool-del').addEventListener('click', () => {
+      const pools = loadPools(); pools.splice(idx, 1); savePools(pools); renderPools();
+    });
+    poolsList.appendChild(row);
+    row.querySelector('.pool-input').focus();
   });
 
   function getActivePool() {
