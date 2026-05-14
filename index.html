@@ -596,6 +596,9 @@
   const commentOverlay  = document.getElementById('comment-box');
   const commentAuthor   = document.getElementById('comment-user');
   const commentBody     = document.getElementById('comment-text');
+  const poolsContainer  = document.getElementById('pools-list'); // settings pool list
+  const volSlider       = document.getElementById('volume-slider');
+  const volVal          = document.getElementById('volume-val');
 
   // tracks the e621 post id currently on screen, null when using local wallpaper
   // needed for hot/sauce buttons and re-fetching comments
@@ -1122,8 +1125,6 @@
 
   // Volume slider
   // volume slider — updates videoPlayer.volume live as you drag
-  const volSlider = document.getElementById('volume-slider');
-  const volVal    = document.getElementById('volume-val');
   const savedVol  = localStorage.getItem(STORE.videoVolume);
   if (savedVol !== null) { videoPlayer.volume = +savedVol / 100; volSlider.value = savedVol; volVal.textContent = savedVol + '%'; }
   volSlider.addEventListener('input', () => {
@@ -1145,7 +1146,6 @@
 
   // Tag pools
   // the container that holds rendered pool rows in settings
-  const poolsContainer = document.getElementById('pools-list');
   function loadPools() { try { return JSON.parse(localStorage.getItem(STORE.tagPools) || '[]').map(p => typeof p === 'string' ? {name:'', tags:p, enabled:true} : p); } catch(e) { return []; } }
   function savePools(pools) { localStorage.setItem(STORE.tagPools, JSON.stringify(pools)); }
 
