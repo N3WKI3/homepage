@@ -194,6 +194,20 @@
   .score-low  { color:rgba(240,90,90,0.9) !important; }
   #pool-badge { font-size:11px; color:rgba(255,255,255,0.35); letter-spacing:0.05em; }
 
+  #err-toast {
+    position:fixed; bottom:64px; left:50%; transform:translateX(-50%);
+    z-index:50; display:flex; align-items:center; gap:8px;
+    background:rgba(30,10,10,0.85); border:1px solid rgba(220,80,80,0.3);
+    border-radius:8px; padding:9px 16px;
+    font-size:12px; color:rgba(255,180,180,0.9);
+    font-family:'DM Sans',sans-serif; font-weight:300; letter-spacing:0.04em;
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    opacity:0; pointer-events:none;
+    transition:opacity 0.3s ease;
+    white-space:nowrap;
+  }
+  #err-toast.show { opacity:1; }
+
   .pool-row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; padding:8px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:8px; }
   .pool-name { width:90px; flex-shrink:0; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); border-radius:6px; color:#fff; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:400; padding:6px 10px; outline:none; transition:border-color 0.2s; }
   .pool-name::placeholder { color:rgba(255,255,255,0.2); }
@@ -252,6 +266,7 @@
   <img id="bg-gif" alt=""/>
 </div>
 <div id="bg-blur"></div>
+<div id="err-toast"></div>
 <div id="overlay"></div>
 
 <div id="ui">
@@ -483,7 +498,17 @@
 
 <script>
   // base path for local wallpaper — set by user in settings, no hardcoded paths
-  const LOCAL_EXTS = ['mp4','gif','jpg','jpeg','png','webp'];
+  // error toast — shows briefly at the bottom, auto-dismisses
+  let toastTimer = null;
+  function showError(msg) {
+    const el = document.getElementById('err-toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 4000);
+  }
+  // proxy URL — replace with your Cloudflare Worker URL after deploying
+  const API = 'https://YOUR_WORKER.workers.dev';
   const K = { source:'viv_src', user:'viv_e6_user', key:'viv_e6_key', tags:'viv_e6_tags', wpData:'viv_wp_data', wpType:'viv_wp_type', startMuted:'viv_start_muted', name:'viv_name', volume:'viv_volume', pools:'viv_pools', commentsVisible:'viv_comments_vis', autoSkip:'viv_auto_skip', searchEngine:'viv_search_engine', localPath:'viv_local_path' };
 
   const bgCur     = document.getElementById('bg');
@@ -683,30 +708,53 @@
     if (pool && pool.name) {
       poolBadge.textContent = pool.name; poolBadge.style.display = ''; poolDivider.style.display = '';
     } else { poolBadge.style.display = 'none'; poolDivider.style.display = 'none'; }
-    if (!user || !key) { fallbackLocal(); return; }
+    if (!user || !key) { showError('No credentials set — open Wallpaper Settings to log in.'); fallbackLocal(); return; }
     const auth = 'Basic ' + btoa(user + ':' + key);
 
     if (/^\d+$/.test(tags.trim())) {
       try {
-        const res = await fetch(`https://e621.net/posts/${tags.trim()}.json`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
+        const res = await fetch(`${API}/posts/${tags.trim()}.json`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
         if (!res.ok) throw new Error('post not found');
         const data = await res.json();
         const post = data.post;
         if (!post || !post.file || !post.file.url) throw new Error('no file');
         applyPost(post, user, key);
         return;
-      } catch(e) { console.warn('post ID fetch failed:', e); fallbackLocal(); return; }
+      } catch(e) {
+        if (e.message && e.message.includes('401')) showError('Wrong username or API key.');
+        else if (e.message && e.message.includes('404')) showError('Post not found — that ID doesn\'t exist.');
+        else if (e.message && e.message.includes('429')) showError('Rate limited by e621 — slow down.');
+        else if (e.message && e.message.includes('503')) showError('e621 is down — try again later.');
+        else showError('Failed to load post — check your connection.');
+        fallbackLocal(); return;
+      }
     }
 
     const params = new URLSearchParams({ limit:1, tags: tags + ' order:random -flash' });
     try {
-      const res = await fetch(`https://e621.net/posts.json?${params}`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
-      if (!res.ok) throw new Error('API error ' + res.status);
+      const res = await fetch(`${API}/posts.json?${params}`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
+      if (res.status === 401) throw new Error('401');
+      if (res.status === 403) throw new Error('403');
+      if (res.status === 404) throw new Error('404');
+      if (res.status === 429) throw new Error('429');
+      if (res.status === 503) throw new Error('503');
+      if (!res.ok) throw new Error('status:' + res.status);
       const data = await res.json();
       const posts = (data.posts || []).filter(p => p.file && p.file.url);
-      if (!posts.length) { fallbackLocal(); return; }
+      if (!posts.length) { showError('No posts found for those tags — try different ones.'); fallbackLocal(); return; }
       applyPost(posts[0], user, key);
-    } catch(e) { console.warn('e621 fetch failed:', e); fallbackLocal(); }
+    } catch(e) {
+      const m = e.message || '';
+      if (m.includes('401')) showError('Wrong username or API key.');
+      else if (m.includes('403')) showError('Access denied — your account may be restricted.');
+      else if (m.includes('404')) showError('No posts found for those tags.');
+      else if (m.includes('429')) showError('Rate limited by e621 — slow down a bit.');
+      else if (m.includes('503')) showError('e621 is down or unreachable — try again later.');
+      else if (m.includes('Failed to fetch') || m.includes('NetworkError')) showError('Network error — check your internet connection.');
+      else if (m.includes('status:')) showError('e621 returned an error (' + m.split(':')[1] + ').');
+      else showError('Something went wrong loading the post.');
+      fallbackLocal();
+    }
   }
 
   function applyPost(post, user, key) {
@@ -740,13 +788,13 @@
     try {
       const auth = 'Basic ' + btoa(user + ':' + key);
       const params = new URLSearchParams({ 'search[post_id]':postId, limit:20, 'search[order]':'score' });
-      const res = await fetch(`https://e621.net/comments.json?${params}`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
-      if (!res.ok) throw new Error('comments API error ' + res.status);
+      const res = await fetch(`${API}/comments.json?${params}`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
+      if (!res.ok) throw new Error('comments:' + res.status);
       const json = await res.json();
       const comments = Array.isArray(json) ? json : (json.comments || []);
       startComments(comments);
     } catch(e) {
-      console.warn('comments fetch failed:', e.message);
+      // comments failing is silent — not worth bothering the user
       clearInterval(commentCycle);
       commentBox.style.display = 'none';
     }
@@ -801,7 +849,7 @@
     if (hotBtn.classList.contains('faved')) return;
     const auth = 'Basic ' + btoa(user + ':' + key);
     try {
-      const res = await fetch('https://e621.net/favorites.json', {
+      const res = await fetch(`${API}/favorites.json`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -810,8 +858,17 @@
         },
         body: new URLSearchParams({ post_id: currentPostId })
       });
-      if (res.ok || res.status === 422) hotBtn.classList.add('faved');
-    } catch(e) { console.warn('favorite failed:', e); }
+      if (res.ok) { hotBtn.classList.add('faved'); }
+      else if (res.status === 422) { hotBtn.classList.add('faved'); showError('Already in your favorites.'); }
+      else if (res.status === 401) showError('Wrong credentials — can\'t favorite.');
+      else if (res.status === 429) showError('Rate limited — try again in a moment.');
+      else showError('Failed to favorite (error ' + res.status + ').');
+    } catch(e) {
+      const m = e.message || '';
+      if (m.includes('401')) showError('Wrong credentials — can\'t favorite.');
+      else if (m.includes('429')) showError('Rate limited — try again in a moment.');
+      else showError('Failed to favorite — check your connection.');
+    }
   });
 
   document.getElementById('local-browse-btn').addEventListener('click', () => document.getElementById('local-browse-input').click());
@@ -957,7 +1014,7 @@
         searchInput.value = '';
         const auth = 'Basic ' + btoa(user + ':' + key);
         try {
-          const res = await fetch(`https://e621.net/posts/${q}.json`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
+          const res = await fetch(`${API}/posts/${q}.json`, { headers:{ 'User-Agent':'VivaldiStartpage/1.0', 'Authorization': auth } });
           if (res.ok) {
             const data = await res.json();
             if (data.post && data.post.file && data.post.file.url) {
@@ -965,7 +1022,11 @@
               return;
             }
           }
-        } catch(err) { console.warn('post ID fetch failed:', err); }
+        } catch(err) {
+          if (err.message && err.message.includes('401')) showError('Wrong username or API key.');
+          else if (err.message && err.message.includes('404')) showError('Post not found — that ID doesn\'t exist.');
+          else showError('Failed to load post — check your connection.');
+        }
       }
     }
 
@@ -1136,7 +1197,7 @@
       rStatus.textContent = `Fetching page ${page}…`;
       rFill.style.width = Math.min(page * 8, 90) + '%';
       try {
-        const res = await fetch(`https://e621.net/posts.json?tags=${encodeURIComponent(searchTags)}&limit=320&page=${page}`, {
+        const res = await fetch(`${API}/posts.json?tags=${encodeURIComponent(searchTags)}&limit=320&page=${page}`, {
           headers: { 'User-Agent': 'VivaldiStartpage/1.0', 'Authorization': auth }
         });
         if (!res.ok) break;
