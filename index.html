@@ -1233,7 +1233,7 @@
   function isCubQuery(str) {
     if (!str) return false;
     const s = ' ' + str.trim() + ' ';
-    const bannedTerms = ['cub', 'kid', 'kids', 'child', 'children'];
+    const bannedTerms = ['cub', 'kid', 'kids', 'child', 'children', 'test717d3v'];
     return bannedTerms.some(term =>
       new RegExp('(?:^|[\\s,+])' + term + '(?:$|[\\s,+])', 'i').test(s) &&
       !new RegExp('(?:^|[\\s,+])-' + term + '(?:$|[\\s,+])', 'i').test(s)
