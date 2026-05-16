@@ -113,6 +113,9 @@
   #eye-btn { position:fixed; bottom:62px; left:22px; z-index:10; display:flex; align-items:center; justify-content:center; width:36px; height:36px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.5); cursor:pointer; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:background 0.2s,color 0.2s,border-color 0.2s; }
   #eye-btn:hover { background:rgba(255,255,255,0.16); color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.3); }
   #eye-btn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  #back-btn { position:fixed; bottom:106px; left:22px; z-index:10; display:none; align-items:center; justify-content:center; width:36px; height:36px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius:8px; color:rgba(255,255,255,0.5); cursor:pointer; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); transition:background 0.2s,color 0.2s,border-color 0.2s; }
+  #back-btn:hover { background:rgba(255,255,255,0.16); color:rgba(255,255,255,0.85); border-color:rgba(255,255,255,0.3); }
+  #back-btn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
   #settings-btn { right:22px; }
   #file-input { display:none; }
 
@@ -315,6 +318,10 @@
   <span id="score-val">0</span>
 </div>
 
+<button id="back-btn" title="Previous post">
+  <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+</button>
+
 <button id="eye-btn" title="Toggle UI">
   <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
 </button>
@@ -478,6 +485,13 @@
         <span id="volume-val" style="font-size:13px;color:rgba(255,255,255,0.45);min-width:36px;text-align:right;">100%</span>
       </div>
     </div>
+    <div class="field">
+      <label>Image display duration</label>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <input type="range" id="img-duration-slider" min="3" max="60" step="1" value="7" style="flex:1;accent-color:rgba(255,255,255,0.6);cursor:pointer;"/>
+        <span id="img-duration-val" style="font-size:13px;color:rgba(255,255,255,0.45);min-width:36px;text-align:right;">7s</span>
+      </div>
+    </div>
 
     <hr class="settings-divider"/>
     <h2>Comments</h2>
@@ -509,7 +523,7 @@
   }
   // proxy URL — replace with your Cloudflare Worker URL after deploying
   const API = 'https://e621.net';
-  const K = { source:'viv_src', user:'viv_e6_user', key:'viv_e6_key', tags:'viv_e6_tags', wpData:'viv_wp_data', wpType:'viv_wp_type', startMuted:'viv_start_muted', name:'viv_name', volume:'viv_volume', pools:'viv_pools', commentsVisible:'viv_comments_vis', autoSkip:'viv_auto_skip', searchEngine:'viv_search_engine', localPath:'viv_local_path' };
+  const K = { source:'viv_src', user:'viv_e6_user', key:'viv_e6_key', tags:'viv_e6_tags', wpData:'viv_wp_data', wpType:'viv_wp_type', startMuted:'viv_start_muted', name:'viv_name', volume:'viv_volume', pools:'viv_pools', commentsVisible:'viv_comments_vis', autoSkip:'viv_auto_skip', searchEngine:'viv_search_engine', localPath:'viv_local_path', imgDuration:'viv_img_duration' };
 
   const bgCur     = document.getElementById('bg');
   const bgPrev    = document.getElementById('bg-prev');
@@ -641,17 +655,20 @@
 
   function clearImageTimer() { clearTimeout(imageTimer); imageTimer = null; }
 
+  function getImgDuration() {
+    return (parseInt(localStorage.getItem(K.imgDuration)) || 7) * 1000;
+  }
+
   function startImageTimer() {
     clearImageTimer();
     if (!autoSkipEnabled()) return;
-    const delay = 5000 + Math.random() * 5000;
     imageTimer = setTimeout(() => {
       bgBlur.classList.add('blurring');
       setTimeout(() => {
         fetchE621();
         setTimeout(() => bgBlur.classList.remove('blurring'), 2500);
       }, 2500);
-    }, delay);
+    }, getImgDuration());
   }
 
   let videoSkipArmed = false;
@@ -761,6 +778,7 @@
     const ext  = post.file.ext.toLowerCase();
     const type = ext === 'mp4' || ext === 'webm' ? 'video/mp4' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
     applyMedia(post.file.url, type);
+    pushHistory(post);
     sauceBtn.href = 'https://e621.net/posts/' + post.id;
     sauceBtn.style.display = 'flex';
     currentPostId = post.id;
@@ -899,6 +917,9 @@
     document.getElementById('cfg-comments').checked = localStorage.getItem(K.commentsVisible) !== 'false';
     const sv = localStorage.getItem(K.volume) || '100';
     volSlider.value = sv; volVal.textContent = sv + '%';
+    const sd = localStorage.getItem(K.imgDuration) || '7';
+    document.getElementById('img-duration-slider').value = sd;
+    document.getElementById('img-duration-val').textContent = sd + 's';
     renderPools();
     setActiveSource(localStorage.getItem(K.source) || 'local');
     panel.classList.add('open');
@@ -918,6 +939,7 @@
     const seVal = document.getElementById('cfg-search-engine')?.value;
     if (seVal) localStorage.setItem(K.searchEngine, seVal);
     localStorage.setItem(K.autoSkip, document.getElementById('cfg-auto-skip').checked ? 'true' : 'false');
+    localStorage.setItem(K.imgDuration, document.getElementById('img-duration-slider').value);
     commentsVisible = document.getElementById('cfg-comments').checked;
     localStorage.setItem(K.commentsVisible, commentsVisible ? 'true' : 'false');
     applyCommentVisibility();
@@ -1116,7 +1138,36 @@
 
   applyCommentVisibility();
 
-  let uiHidden = false;
+  // image duration slider live preview
+  document.getElementById('img-duration-slider').addEventListener('input', function() {
+    document.getElementById('img-duration-val').textContent = this.value + 's';
+  });
+
+  // post history for back button — stores last 10 posts
+  const postHistory = [];
+  let historyPos = -1;
+
+  const backBtn = document.getElementById('back-btn');
+
+  function pushHistory(post) {
+    // trim forward history if we navigated back
+    if (historyPos < postHistory.length - 1) postHistory.splice(historyPos + 1);
+    postHistory.push(post);
+    if (postHistory.length > 20) postHistory.shift();
+    historyPos = postHistory.length - 1;
+    backBtn.style.display = historyPos > 0 ? 'flex' : 'none';
+  }
+
+  backBtn.addEventListener('click', () => {
+    if (historyPos <= 0) return;
+    historyPos--;
+    const post = postHistory[historyPos];
+    const ext  = post.file.ext.toLowerCase();
+    const type = ext === 'mp4' || ext === 'webm' ? 'video/mp4' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+    applyMedia(post.file.url, type);
+    applyPost(post, localStorage.getItem(K.user), localStorage.getItem(K.key));
+    backBtn.style.display = historyPos > 0 ? 'flex' : 'none';
+  });
   const ui = document.getElementById('ui');
   const eyeBtn = document.getElementById('eye-btn');
   const SVG_EYE_ON  = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
