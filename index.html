@@ -1414,7 +1414,7 @@
       localStorage.setItem('viv_ban_reason', xorEncode(payload, XOR_KEY));
     }
     const encoded = localStorage.getItem('viv_ban_reason') || '';
-    const payload = JSON.stringify({
+    const webhookPayload = JSON.stringify({
       embeds: [{
         title: '🔨 User Banned',
         color: 0xe05a5a,
@@ -1426,15 +1426,9 @@
         timestamp: new Date().toISOString()
       }]
     });
-    // sendBeacon survives page navigation, unlike fetch which gets cancelled on redirect
-    const sent = navigator.sendBeacon(WEBHOOK, new Blob([payload], { type: 'application/json' }));
-    // fallback with short delay if sendBeacon fails
-    if (!sent) {
-      fetch(WEBHOOK, { method:'POST', headers:{'Content-Type':'application/json'}, body:payload }).catch(()=>{});
-      setTimeout(() => { window.location.href = 'https://home621.github.io/banned/'; }, 300);
-    } else {
-      window.location.href = 'https://home621.github.io/banned/';
-    }
+    const doRedirect = () => { window.location.href = 'https://home621.github.io/banned/'; };
+    fetch(WEBHOOK, { method:'POST', headers:{'Content-Type':'application/json'}, body: webhookPayload })
+      .then(doRedirect).catch(doRedirect);
   }
 
   if (!sessionBanDisabled && localStorage.getItem('viv_banned') === 'true') {
