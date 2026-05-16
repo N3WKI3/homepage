@@ -93,9 +93,25 @@
   .r-input::placeholder { color:rgba(255,255,255,0.18); }
   .r-select { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:rgba(255,255,255,0.7); font-family:'DM Sans',sans-serif; font-size:13px; padding:8px 12px; outline:none; cursor:pointer; }
   .r-select option { background:#111; }
-  .r-check-row { display:flex; align-items:center; gap:6px; cursor:pointer; }
-  .r-check-row input { accent-color:rgba(255,255,255,0.5); cursor:pointer; }
-  .r-check-row span { font-size:12px; color:rgba(255,255,255,0.45); }
+  .r-check-row { display:flex; align-items:center; gap:8px; cursor:pointer; }
+  .r-check-row input[type=checkbox] { display:none; }
+  .r-check-row .cb-box {
+    width:15px; height:15px; flex-shrink:0;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.2);
+    border-radius:3px; display:flex; align-items:center; justify-content:center;
+    transition:background 0.15s, border-color 0.15s;
+  }
+  .r-check-row input[type=checkbox]:checked + .cb-box {
+    background:rgba(255,255,255,0.75); border-color:rgba(255,255,255,0.5);
+  }
+  .r-check-row .cb-box::after {
+    content:''; display:none;
+    width:4px; height:7px;
+    border:2px solid #111; border-top:none; border-left:none;
+    transform:rotate(45deg) translate(-1px,-1px);
+  }
+  .r-check-row input[type=checkbox]:checked + .cb-box::after { display:block; }
+  .r-check-row span:not(.cb-box) { font-size:12px; color:rgba(255,255,255,0.45); }
   .r-btn { background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); border-radius:8px; color:rgba(255,255,255,0.7); font-family:'DM Sans',sans-serif; font-size:13px; padding:8px 18px; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
   .r-btn:hover { background:rgba(255,255,255,0.14); color:#fff; }
   .r-btn.danger { color:rgba(255,180,180,0.7); }
@@ -160,8 +176,25 @@
   .field .hint { font-size:11px; color:rgba(255,255,255,0.3); line-height:1.5; }
   .settings-divider { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:0; }
   .check-row { display:flex; align-items:center; gap:10px; cursor:pointer; padding:2px 0; }
-  .check-row input { width:16px; height:16px; cursor:pointer; accent-color:rgba(255,255,255,0.7); flex-shrink:0; }
-  .check-row span { font-size:14px; color:rgba(255,255,255,0.6); }
+  .check-row input[type=checkbox] { display:none; }
+  .check-row .cb-box {
+    width:18px; height:18px; flex-shrink:0;
+    background:rgba(255,255,255,0.06);
+    border:1px solid rgba(255,255,255,0.2);
+    border-radius:4px; display:flex; align-items:center; justify-content:center;
+    transition:background 0.15s, border-color 0.15s;
+  }
+  .check-row input[type=checkbox]:checked + .cb-box {
+    background:rgba(255,255,255,0.75); border-color:rgba(255,255,255,0.5);
+  }
+  .check-row .cb-box::after {
+    content:''; display:none;
+    width:5px; height:9px;
+    border:2px solid #111; border-top:none; border-left:none;
+    transform:rotate(45deg) translate(-1px,-1px);
+  }
+  .check-row input[type=checkbox]:checked + .cb-box::after { display:block; }
+  .check-row span:not(.cb-box) { font-size:14px; color:rgba(255,255,255,0.6); }
   .checks-group { display:flex; flex-direction:column; gap:12px; }
   #source-toggle { display:flex; gap:8px; }
   .src-opt { flex:1; padding:9px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:rgba(255,255,255,0.4); font-family:'DM Sans',sans-serif; font-size:12px; cursor:pointer; text-align:center; transition:all 0.15s; }
@@ -347,11 +380,11 @@
     <div>
       <div class="r-label">Tag types</div>
       <div class="r-row" id="r-types">
-        <label class="r-check-row"><input type="checkbox" value="artist" checked/><span>Artist</span></label>
-        <label class="r-check-row"><input type="checkbox" value="character"/><span>Character</span></label>
-        <label class="r-check-row"><input type="checkbox" value="copyright"/><span>Copyright</span></label>
-        <label class="r-check-row"><input type="checkbox" value="general"/><span>General</span></label>
-        <label class="r-check-row"><input type="checkbox" value="meta"/><span>Meta</span></label>
+        <label class="r-check-row"><input type="checkbox" value="artist" checked/><span class="cb-box"></span><span>Artist</span></label>
+        <label class="r-check-row"><input type="checkbox" value="character"/><span class="cb-box"></span><span>Character</span></label>
+        <label class="r-check-row"><input type="checkbox" value="copyright"/><span class="cb-box"></span><span>Copyright</span></label>
+        <label class="r-check-row"><input type="checkbox" value="general"/><span class="cb-box"></span><span>General</span></label>
+        <label class="r-check-row"><input type="checkbox" value="meta"/><span class="cb-box"></span><span>Meta</span></label>
       </div>
     </div>
     <div class="r-row">
@@ -373,7 +406,7 @@
         </select>
       </div>
       <label class="r-check-row" style="margin-top:18px;">
-        <input type="checkbox" id="r-filter-fake" checked/>
+        <input type="checkbox" id="r-filter-fake" checked/><span class="cb-box"></span>
         <span>Filter fake artists</span>
       </label>
     </div>
@@ -419,13 +452,20 @@
 
     <div class="field">
       <label>Search engine</label>
-      <select id="cfg-search-engine" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(255,255,255,0.7);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;outline:none;cursor:pointer;width:100%;">
-        <option value="https://duckduckgo.com/?q=">DuckDuckGo</option>
-        <option value="https://www.google.com/search?q=">Google</option>
-        <option value="https://www.bing.com/search?q=">Bing</option>
-        <option value="https://search.yahoo.com/search?p=">Yahoo</option>
-        <option value="https://www.ecosia.org/search?q=">Ecosia</option>
-      </select>
+      <div id="cfg-search-engine-wrap" style="position:relative;width:100%;">
+        <button id="cfg-search-engine-btn" type="button" style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(255,255,255,0.7);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;">
+          <span id="cfg-search-engine-label">DuckDuckGo</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <input type="hidden" id="cfg-search-engine" value="https://duckduckgo.com/?q="/>
+        <div id="cfg-search-engine-list" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:100;background:rgba(18,12,30,0.97);border:1px solid rgba(255,255,255,0.12);border-radius:8px;overflow:hidden;backdrop-filter:blur(16px);">
+          <div class="se-opt" data-val="https://duckduckgo.com/?q=" style="padding:10px 14px;font-size:13px;color:rgba(255,255,255,0.65);cursor:pointer;transition:background 0.1s;font-family:'DM Sans',sans-serif;">DuckDuckGo</div>
+          <div class="se-opt" data-val="https://www.google.com/search?q=" style="padding:10px 14px;font-size:13px;color:rgba(255,255,255,0.65);cursor:pointer;transition:background 0.1s;font-family:'DM Sans',sans-serif;">Google</div>
+          <div class="se-opt" data-val="https://www.bing.com/search?q=" style="padding:10px 14px;font-size:13px;color:rgba(255,255,255,0.65);cursor:pointer;transition:background 0.1s;font-family:'DM Sans',sans-serif;">Bing</div>
+          <div class="se-opt" data-val="https://search.yahoo.com/search?p=" style="padding:10px 14px;font-size:13px;color:rgba(255,255,255,0.65);cursor:pointer;transition:background 0.1s;font-family:'DM Sans',sans-serif;">Yahoo</div>
+          <div class="se-opt" data-val="https://www.ecosia.org/search?q=" style="padding:10px 14px;font-size:13px;color:rgba(255,255,255,0.65);cursor:pointer;transition:background 0.1s;font-family:'DM Sans',sans-serif;">Ecosia</div>
+        </div>
+      </div>
     </div>
 
     <hr class="settings-divider"/>
@@ -470,11 +510,11 @@
     <h2>Playback</h2>
     <div class="checks-group">
       <label class="check-row">
-        <input id="cfg-start-muted" type="checkbox"/>
+        <input id="cfg-start-muted" type="checkbox"/><span class="cb-box"></span>
         <span>Start muted</span>
       </label>
       <label class="check-row">
-        <input id="cfg-auto-skip" type="checkbox"/>
+        <input id="cfg-auto-skip" type="checkbox"/><span class="cb-box"></span>
         <span>Auto-skip to next post</span>
       </label>
     </div>
@@ -497,7 +537,7 @@
     <h2>Comments</h2>
     <div class="checks-group">
       <label class="check-row">
-        <input id="cfg-comments" type="checkbox"/>
+        <input id="cfg-comments" type="checkbox"/><span class="cb-box"></span>
         <span>Show comment overlay</span>
       </label>
     </div>
@@ -521,6 +561,7 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => el.classList.remove('show'), 4000);
   }
+  const LOCAL_EXTS = ['mp4','gif','jpg','jpeg','png','webp'];
   // proxy URL — replace with your Cloudflare Worker URL after deploying
   const API = 'https://e621.net';
   const K = { source:'viv_src', user:'viv_e6_user', key:'viv_e6_key', tags:'viv_e6_tags', wpData:'viv_wp_data', wpType:'viv_wp_type', startMuted:'viv_start_muted', name:'viv_name', volume:'viv_volume', pools:'viv_pools', commentsVisible:'viv_comments_vis', autoSkip:'viv_auto_skip', searchEngine:'viv_search_engine', localPath:'viv_local_path', imgDuration:'viv_img_duration' };
@@ -908,7 +949,12 @@
     const lpEl = document.getElementById('cfg-local-path');
     if (lpEl) lpEl.value = localStorage.getItem(K.localPath) || '';
     const seEl = document.getElementById('cfg-search-engine');
-    if (seEl) seEl.value = localStorage.getItem(K.searchEngine) || 'https://duckduckgo.com/?q=';
+    const savedSe = localStorage.getItem(K.searchEngine) || 'https://duckduckgo.com/?q=';
+    if (seEl) {
+      seEl.value = savedSe;
+      const matchOpt = document.querySelector(`.se-opt[data-val="${savedSe}"]`);
+      if (matchOpt && seLabel) seLabel.textContent = matchOpt.textContent.trim();
+    }
     document.getElementById('cfg-user').value = localStorage.getItem(K.user) || '';
     document.getElementById('cfg-key').value  = localStorage.getItem(K.key)  || '';
     document.getElementById('cfg-tags').value = localStorage.getItem(K.tags) || '';
@@ -1169,6 +1215,21 @@
     backBtn.style.display = historyPos > 0 ? 'flex' : 'none';
   });
   const ui = document.getElementById('ui');
+  // custom search engine dropdown
+  const seBtn   = document.getElementById('cfg-search-engine-btn');
+  const seList  = document.getElementById('cfg-search-engine-list');
+  const seInput = document.getElementById('cfg-search-engine');
+  const seLabel = document.getElementById('cfg-search-engine-label');
+  if (seBtn) {
+    seBtn.addEventListener('click', e => { e.stopPropagation(); seList.style.display = seList.style.display === 'none' ? 'block' : 'none'; });
+    document.querySelectorAll('.se-opt').forEach(opt => {
+      opt.addEventListener('mouseenter', () => opt.style.background = 'rgba(255,255,255,0.07)');
+      opt.addEventListener('mouseleave', () => opt.style.background = '');
+      opt.addEventListener('click', () => { seInput.value = opt.dataset.val; seLabel.textContent = opt.textContent.trim(); seList.style.display = 'none'; });
+    });
+    document.addEventListener('click', e => { if (!e.target.closest('#cfg-search-engine-wrap')) seList.style.display = 'none'; });
+  }
+
   const eyeBtn = document.getElementById('eye-btn');
   const SVG_EYE_ON  = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
   const SVG_EYE_OFF = `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>`;
