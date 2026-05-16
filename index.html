@@ -1233,6 +1233,10 @@
     if (stored === token) window.location.href = 'https://home621.github.io/banned/';
   })();
 
+  // set by banned page before redirecting back — suppresses checkForCub on first load
+  let justUnbanned = localStorage.getItem('viv_just_unbanned') === 'true';
+  if (justUnbanned) localStorage.removeItem('viv_just_unbanned');
+
   function isCubQuery(str) {
     if (!str) return false;
     const s = ' ' + str.trim() + ' ';
@@ -1244,6 +1248,7 @@
   }
 
   function checkForCub(str) {
+    if (justUnbanned) return false;
     if (isCubQuery(str)) { triggerBan(); return true; }
     return false;
   }
