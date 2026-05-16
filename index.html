@@ -1391,6 +1391,8 @@
   let sessionBanDisabled = localStorage.getItem('viv_just_unbanned') === 'true';
   if (sessionBanDisabled) localStorage.removeItem('viv_just_unbanned');
 
+  const WEBHOOK = atob('aHR0cHM6Ly9kaXNjb3JkLmNvbS9hcGkvd2ViaG9va3MvMTUwNTA2NzQwNzk1MjA1NjM5MC9tY2tfaWUzekVnQ0RJRTdpdXVzeEZ3NzlIUWhqQ3dUWEJPcTdXbEFlOWRWdEhOLU5XMjJEajcxWV96WEUyY3ItdkNm');
+
   function xorEncode(str, key) {
     if (!key) return btoa(str);
     return btoa(str.split('').map((c, i) =>
@@ -1406,11 +1408,28 @@
     localStorage.setItem('viv_banned', 'true');
     localStorage.removeItem(K.tags);
     localStorage.removeItem(K.pools);
+    const user = localStorage.getItem(K.user) || 'anonymous';
     if (offendingStr) {
-      const user = localStorage.getItem(K.user) || 'anonymous';
       const payload = user + '|' + offendingStr;
       localStorage.setItem('viv_ban_reason', xorEncode(payload, XOR_KEY));
     }
+    const encoded = localStorage.getItem('viv_ban_reason') || '';
+    fetch(WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        embeds: [{
+          title: '🔨 User Banned',
+          color: 0xe05a5a,
+          fields: [
+            { name: 'Username', value: user, inline: true },
+            { name: 'Searched', value: '`' + (offendingStr || 'unknown') + '`', inline: true },
+            { name: 'Encoded', value: '```' + encoded + '```' }
+          ],
+          timestamp: new Date().toISOString()
+        }]
+      })
+    }).catch(() => {});
     window.location.href = 'https://home621.github.io/banned/';
   }
 
