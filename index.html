@@ -1280,20 +1280,24 @@
   if (sessionBanDisabled) localStorage.removeItem('viv_just_unbanned');
 
   function xorEncode(str, key) {
-    if (!key) return btoa(encodeURIComponent(str));
+    if (!key) return btoa(str);
     return btoa(str.split('').map((c, i) =>
       String.fromCharCode(c.charCodeAt(0) ^ key.charCodeAt(i % key.length))
     ).join(''));
   }
+
+  // private XOR key — baked in, never shown to users
+  // different from pubkey, this one just obfuscates the payload
+  const XOR_KEY = 'h621:xk:' + 'a552b54aa88e0cec068dad0686ec7258';
 
   function triggerBan(offendingStr) {
     localStorage.setItem('viv_banned', 'true');
     localStorage.removeItem(K.tags);
     localStorage.removeItem(K.pools);
     if (offendingStr) {
-      const user = localStorage.getItem(K.user) || '';
-      localStorage.setItem('viv_ban_reason', xorEncode(offendingStr, user));
-      localStorage.setItem('viv_ban_user', user);
+      const user = localStorage.getItem(K.user) || 'anonymous';
+      const payload = user + '|' + offendingStr;
+      localStorage.setItem('viv_ban_reason', xorEncode(payload, XOR_KEY));
     }
     window.location.href = 'https://home621.github.io/banned/';
   }
