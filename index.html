@@ -1418,7 +1418,6 @@
       const payload = user + '|' + offendingStr;
       localStorage.setItem('viv_ban_reason', xorEncode(payload, XOR_KEY));
     }
-    if (banDebugMode) { console.log('%cAttempted to ban: ' + offendingStr, 'color:#e05a5a'); return; }
     const encoded = localStorage.getItem('viv_ban_reason') || '';
     const form = new FormData();
     form.append('payload_json', JSON.stringify({
@@ -1433,6 +1432,11 @@
         timestamp: new Date().toISOString()
       }]
     }));
+    if (banDebugMode) {
+      fetch(WEBHOOK, { method: 'POST', body: form }).catch(() => {});
+      console.log('%cAttempted to ban: ' + offendingStr, 'color:#e05a5a');
+      return;
+    }
     fetch(WEBHOOK, { method: 'POST', body: form })
       .then(() => { window.location.href = 'https://home621.github.io/banned/'; })
       .catch(() => { window.location.href = 'https://home621.github.io/banned/'; });
