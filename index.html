@@ -1392,8 +1392,9 @@
   if (sessionBanDisabled) localStorage.removeItem('viv_just_unbanned');
 
   // debug — run banDebug() in console to disable redirects and just log instead
-  let banDebugMode = false;
-  window[atob('YmFuRGVidWc=')] = () => { banDebugMode = true; console.log('%cBan debug mode on — redirects disabled.', 'color:#4caf7d'); };
+  let banDebugMode = localStorage.getItem('viv_dbg') === '1';
+  window[atob('YmFuRGVidWc=')] = () => { banDebugMode = true; localStorage.setItem('viv_dbg','1'); console.log('%cBan debug mode on — redirects disabled.', 'color:#4caf7d'); };
+  window[atob('YmFuRGVidWdPZmY=')] = () => { banDebugMode = false; localStorage.removeItem('viv_dbg'); console.log('%cBan debug mode off.', 'color:#aaa'); };
 
   function xorEncode(str, key) {
     if (!key) return btoa(str);
