@@ -1492,15 +1492,15 @@
 
 
   const welcomeScreen = document.getElementById('welcome-screen');
+  function dismissWelcome() {
+    welcomeScreen.classList.add('hiding');
+    setTimeout(() => { welcomeScreen.style.display = 'none'; localStorage.setItem('viv_welcomed','true'); }, 500);
+  }
   if (localStorage.getItem('viv_welcomed') === 'true') {
     welcomeScreen.style.display = 'none';
   } else {
-    const dismissWelcome = () => {
-      welcomeScreen.classList.add('hiding');
-      setTimeout(() => { welcomeScreen.style.display = 'none'; localStorage.setItem('viv_welcomed','true'); }, 500);
-    };
-    document.getElementById('welcome-dismiss').addEventListener('click', dismissWelcome);
-    welcomeScreen.addEventListener('click', e => { if (e.target === welcomeScreen) dismissWelcome(); });
+    document.getElementById('welcome-dismiss').onclick = dismissWelcome;
+    welcomeScreen.onclick = e => { if (e.target === welcomeScreen) dismissWelcome(); };
   }
 
   window.addEventListener('load', () => { if (!isMobile) searchInput.focus(); });
