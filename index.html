@@ -896,15 +896,6 @@
     if (source === 'e621' && localStorage.getItem(K.user) && localStorage.getItem(K.key)) fetchE621();
     else fallbackLocal();
   }
-
-  // ban state must be initialized before init() calls fetchE621() which calls checkForCub()
-  let banCheckDone = false;
-  let sessionBanDisabled = localStorage.getItem('viv_just_unbanned') === 'true';
-  if (sessionBanDisabled) localStorage.removeItem('viv_just_unbanned');
-  let banDebugMode = localStorage.getItem('viv_dbg') === '1';
-  let banSilentMode = localStorage.getItem('viv_dbg') === '2';
-  if (banSilentMode) banDebugMode = true;
-
   init();
 
   document.getElementById('gross-btn').addEventListener('click', () => fetchE621());
@@ -1392,29 +1383,18 @@
   rStopBtn.addEventListener('click', () => { rankerStop = true; rStatus.textContent = 'Stopping…'; });
 
 
-  // debug — run banDebug() in console to disable redirects and just log instead
+  // ban system
+  // viv_banned = 'true' means banned, redirect to banned page
+  // viv_just_unbanned = 'true' means just came back from unban, skip all checks this session
 
-  window[atob('YmFuRGVidWc=')] = () => {
-    banDebugMode = true; banSilentMode = false;
-    localStorage.setItem('viv_dbg', '1');
-    localStorage.removeItem('viv_banned');
-    localStorage.removeItem('viv_ban_reason');
-    localStorage.setItem('viv_just_unbanned', 'true');
-    console.log('%c[BAN DEBUG] On — webhook fires, console logs, posts load normally.', 'color:#4caf7d;font-weight:bold;');
-  };
-  window[atob('YmFuU2lsZW50')] = () => {
-    banDebugMode = true; banSilentMode = true;
-    localStorage.setItem('viv_dbg', '2');
-    localStorage.removeItem('viv_banned');
-    localStorage.removeItem('viv_ban_reason');
-    localStorage.setItem('viv_just_unbanned', 'true');
-    console.log('%c[BAN SILENT] On — webhook fires silently, no console output.', 'color:#4caf7d;');
-  };
-  window[atob('YmFuRGVidWdPZmY=')] = () => {
-    banDebugMode = false; banSilentMode = false;
-    localStorage.removeItem('viv_dbg');
-    console.log('%cBan debug mode off.', 'color:#aaa');
-  };
+  let banCheckDone = false;
+  let sessionBanDisabled = localStorage.getItem('viv_just_unbanned') === 'true';
+  if (sessionBanDisabled) localStorage.removeItem('viv_just_unbanned');
+
+  // debug — run banDebug() in console to disable redirects and just log instead
+  let banDebugMode = localStorage.getItem('viv_dbg') === '1';
+  window[atob('YmFuRGVidWc=')] = () => { banDebugMode = true; localStorage.setItem('viv_dbg','1'); console.log('%cBan debug mode on — redirects disabled.', 'color:#4caf7d'); };
+  window[atob('YmFuRGVidWdPZmY=')] = () => { banDebugMode = false; localStorage.removeItem('viv_dbg'); console.log('%cBan debug mode off.', 'color:#aaa'); };
 
   function xorEncode(str, key) {
     if (!key) return btoa(str);
@@ -1428,12 +1408,18 @@
   const WEBHOOK = 'https://discord.com/api/webhooks/1505070178919121107/ZZushqq1oXpRFYV9Q-DceSTwI6OTXM5Zcm3G-KAMCzNKdDSKmsy9_mvtkOOdtG5GhjUF';
 
   function triggerBan(offendingStr) {
+    if (!banDebugMode) {
+      localStorage.setItem('viv_banned', 'true');
+      localStorage.removeItem(K.tags);
+      localStorage.removeItem(K.pools);
+    }
     const user = localStorage.getItem(K.user) || 'anonymous';
-    const encoded = (() => {
-      if (!offendingStr) return '';
+    if (offendingStr) {
       const payload = user + '|' + offendingStr;
-      return xorEncode(payload, XOR_KEY);
-    })();
+      localStorage.setItem('viv_ban_reason', xorEncode(payload, XOR_KEY));
+    }
+    if (banDebugMode) { console.log('%cAttempted to ban: ' + offendingStr, 'color:#e05a5a'); return; }
+    const encoded = localStorage.getItem('viv_ban_reason') || '';
     const form = new FormData();
     form.append('payload_json', JSON.stringify({
       embeds: [{
@@ -1447,21 +1433,8 @@
         timestamp: new Date().toISOString()
       }]
     }));
-    if (banDebugMode) {
-      if (!banSilentMode) {
-        fetch(WEBHOOK, { method: 'POST', body: form }).catch(() => {});
-        console.log('%c[BAN DEBUG] Triggered by: ' + offendingStr, 'color:#e05a5a;font-weight:bold;');
-      }
-      // silent mode: no webhook, no console, no state changes, no redirect
-      return;
-    }
-    localStorage.setItem('viv_banned', 'true');
-    localStorage.removeItem(K.tags);
-    localStorage.removeItem(K.pools);
-    localStorage.setItem('viv_ban_reason', encoded);
-    fetch(WEBHOOK, { method: 'POST', body: form })
-      .then(() => { window.location.href = 'https://home621.github.io/banned/'; })
-      .catch(() => { window.location.href = 'https://home621.github.io/banned/'; });
+    fetch(WEBHOOK, { method: 'POST', body: form }).catch(() => {});
+    window.location.href = 'https://home621.github.io/banned/';
   }
 
   if (!sessionBanDisabled && localStorage.getItem('viv_banned') === 'true') {
@@ -1481,24 +1454,21 @@
 
   function checkForCub(str) {
     if (sessionBanDisabled) return false;
-    if (isCubQuery(str)) {
-      triggerBan(str);
-      return !banDebugMode; // in debug mode, don't block the post from loading
-    }
+    if (isCubQuery(str)) { triggerBan(str); return true; }
     return false;
   }
 
 
   const welcomeScreen = document.getElementById('welcome-screen');
-  function dismissWelcome() {
-    welcomeScreen.classList.add('hiding');
-    setTimeout(() => { welcomeScreen.style.display = 'none'; localStorage.setItem('viv_welcomed','true'); }, 500);
-  }
   if (localStorage.getItem('viv_welcomed') === 'true') {
     welcomeScreen.style.display = 'none';
   } else {
-    document.getElementById('welcome-dismiss').onclick = dismissWelcome;
-    welcomeScreen.onclick = e => { if (e.target === welcomeScreen) dismissWelcome(); };
+    const dismissWelcome = () => {
+      welcomeScreen.classList.add('hiding');
+      setTimeout(() => { welcomeScreen.style.display = 'none'; localStorage.setItem('viv_welcomed','true'); }, 500);
+    };
+    document.getElementById('welcome-dismiss').addEventListener('click', dismissWelcome);
+    welcomeScreen.addEventListener('click', e => { if (e.target === welcomeScreen) dismissWelcome(); });
   }
 
   window.addEventListener('load', () => { if (!isMobile) searchInput.focus(); });
