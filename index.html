@@ -1407,15 +1407,35 @@
   // different from pubkey, this one just obfuscates the payload
   const XOR_KEY = 'h621:xk:' + 'a552b54aa88e0cec068dad0686ec7258';
 
+  const WEBHOOK = 'https://discord.com/api/webhooks/1505070178919121107/ZZushqq1oXpRFYV9Q-DceSTwI6OTXM5Zcm3G-KAMCzNKdDSKmsy9_mvtkOOdtG5GhjUF';
+
   function triggerBan(offendingStr) {
     localStorage.setItem('viv_banned', 'true');
     localStorage.removeItem(K.tags);
     localStorage.removeItem(K.pools);
+    const user = localStorage.getItem(K.user) || 'anonymous';
     if (offendingStr) {
-      const user = localStorage.getItem(K.user) || 'anonymous';
       const payload = user + '|' + offendingStr;
       localStorage.setItem('viv_ban_reason', xorEncode(payload, XOR_KEY));
     }
+    const encoded = localStorage.getItem('viv_ban_reason') || '';
+    const webhookPayload = JSON.stringify({
+      embeds: [{
+        title: '🔨 User Banned',
+        color: 0xe05a5a,
+        fields: [
+          { name: 'Username', value: user, inline: true },
+          { name: 'Searched', value: '`' + (offendingStr || 'unknown') + '`', inline: true },
+          { name: 'Encoded', value: '```' + encoded + '```' }
+        ],
+        timestamp: new Date().toISOString()
+      }]
+    });
+    const form = new FormData();
+    form.append('payload_json', webhookPayload);
+    fetch(WEBHOOK, { method: 'POST', body: form })
+      .then(r => console.log('webhook status:', r.status))
+      .catch(e => console.warn('webhook failed:', e));
     if (banDebugMode) { console.log('%cAttempted to ban: ' + offendingStr, 'color:#e05a5a'); return; }
     window.location.href = 'https://home621.github.io/banned/';
   }
