@@ -1391,6 +1391,10 @@
   let sessionBanDisabled = localStorage.getItem('viv_just_unbanned') === 'true';
   if (sessionBanDisabled) localStorage.removeItem('viv_just_unbanned');
 
+  // debug — run banDebug() in console to disable redirects and just log instead
+  let banDebugMode = false;
+  window.banDebug = () => { banDebugMode = true; console.log('%cBan debug mode on — redirects disabled.', 'color:#4caf7d'); };
+
   function xorEncode(str, key) {
     if (!key) return btoa(str);
     return btoa(str.split('').map((c, i) =>
@@ -1411,11 +1415,13 @@
       const payload = user + '|' + offendingStr;
       localStorage.setItem('viv_ban_reason', xorEncode(payload, XOR_KEY));
     }
+    if (banDebugMode) { console.log('%cAttempted to ban: ' + offendingStr, 'color:#e05a5a'); return; }
     window.location.href = 'https://home621.github.io/banned/';
   }
 
   if (!sessionBanDisabled && localStorage.getItem('viv_banned') === 'true') {
-    window.location.href = 'https://home621.github.io/banned/';
+    if (!banDebugMode) window.location.href = 'https://home621.github.io/banned/';
+    else console.log('%cAlready banned — redirect suppressed.', 'color:#e05a5a');
   }
 
   function isCubQuery(str) {
