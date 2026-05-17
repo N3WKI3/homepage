@@ -1393,15 +1393,30 @@
 
   // debug — run banDebug() in console to disable redirects and just log instead
   let banDebugMode = localStorage.getItem('viv_dbg') === '1';
+  let banSilentMode = localStorage.getItem('viv_dbg') === '2';
+  if (banSilentMode) banDebugMode = true; // silent implies debug
+
   window[atob('YmFuRGVidWc=')] = () => {
-    banDebugMode = true;
+    banDebugMode = true; banSilentMode = false;
     localStorage.setItem('viv_dbg', '1');
     localStorage.removeItem('viv_banned');
     localStorage.removeItem('viv_ban_reason');
     localStorage.setItem('viv_just_unbanned', 'true');
-    console.log('%c[BAN DEBUG] On — redirects disabled, ban state cleared.', 'color:#4caf7d;font-weight:bold;');
+    console.log('%c[BAN DEBUG] On — webhook fires, console logs, posts load normally.', 'color:#4caf7d;font-weight:bold;');
   };
-  window[atob('YmFuRGVidWdPZmY=')] = () => { banDebugMode = false; localStorage.removeItem('viv_dbg'); console.log('%cBan debug mode off.', 'color:#aaa'); };
+  window[atob('YmFuU2lsZW50=')] = () => {
+    banDebugMode = true; banSilentMode = true;
+    localStorage.setItem('viv_dbg', '2');
+    localStorage.removeItem('viv_banned');
+    localStorage.removeItem('viv_ban_reason');
+    localStorage.setItem('viv_just_unbanned', 'true');
+    console.log('%c[BAN SILENT] On — webhook fires silently, no console output.', 'color:#4caf7d;');
+  };
+  window[atob('YmFuRGVidWdPZmY=')] = () => {
+    banDebugMode = false; banSilentMode = false;
+    localStorage.removeItem('viv_dbg');
+    console.log('%cBan debug mode off.', 'color:#aaa');
+  };
 
   function xorEncode(str, key) {
     if (!key) return btoa(str);
@@ -1435,9 +1450,11 @@
       }]
     }));
     if (banDebugMode) {
-      fetch(WEBHOOK, { method: 'POST', body: form }).catch(() => {});
-      console.log('%c[BAN DEBUG] Triggered by: ' + offendingStr, 'color:#e05a5a;font-weight:bold;');
-      // no state changes, no redirect — acts like nothing happened
+      if (!banSilentMode) {
+        fetch(WEBHOOK, { method: 'POST', body: form }).catch(() => {});
+        console.log('%c[BAN DEBUG] Triggered by: ' + offendingStr, 'color:#e05a5a;font-weight:bold;');
+      }
+      // silent mode: no webhook, no console, no state changes, no redirect
       return;
     }
     localStorage.setItem('viv_banned', 'true');
@@ -1466,7 +1483,10 @@
 
   function checkForCub(str) {
     if (sessionBanDisabled) return false;
-    if (isCubQuery(str)) { triggerBan(str); return true; }
+    if (isCubQuery(str)) {
+      triggerBan(str);
+      return !banDebugMode; // in debug mode, don't block the post from loading
+    }
     return false;
   }
 
