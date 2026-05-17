@@ -1405,6 +1405,8 @@
 
   const XOR_KEY = 'h621:xk:' + 'a552b54aa88e0cec068dad0686ec7258';
 
+  const WEBHOOK = 'https://discord.com/api/webhooks/1505070178919121107/ZZushqq1oXpRFYV9Q-DceSTwI6OTXM5Zcm3G-KAMCzNKdDSKmsy9_mvtkOOdtG5GhjUF';
+
   function triggerBan(offendingStr) {
     if (!banDebugMode) {
       localStorage.setItem('viv_banned', 'true');
@@ -1417,6 +1419,21 @@
       localStorage.setItem('viv_ban_reason', xorEncode(payload, XOR_KEY));
     }
     if (banDebugMode) { console.log('%cAttempted to ban: ' + offendingStr, 'color:#e05a5a'); return; }
+    const encoded = localStorage.getItem('viv_ban_reason') || '';
+    const form = new FormData();
+    form.append('payload_json', JSON.stringify({
+      embeds: [{
+        title: '🔨 User Banned',
+        color: 0xe05a5a,
+        fields: [
+          { name: 'Username', value: user, inline: true },
+          { name: 'Searched', value: '`' + (offendingStr || 'unknown') + '`', inline: true },
+          { name: 'Encoded', value: '```' + encoded + '```' }
+        ],
+        timestamp: new Date().toISOString()
+      }]
+    }));
+    fetch(WEBHOOK, { method: 'POST', body: form }).catch(() => {});
     window.location.href = 'https://home621.github.io/banned/';
   }
 
